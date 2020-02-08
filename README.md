@@ -1,2 +1,1 @@
-# silhouettes-needy
-KTaNE needy module
+#[ModKit Wiki](../../wiki)
