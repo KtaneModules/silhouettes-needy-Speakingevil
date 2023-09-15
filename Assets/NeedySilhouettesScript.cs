@@ -14,6 +14,7 @@ public class NeedySilhouettesScript : MonoBehaviour {
     public Renderer rcpatch;
     public GameObject rotcentre;
     public TextMesh[] coordinates;
+    public IEnumerator[] rotate = new IEnumerator[6];
 
     private string[] solidnames = new string[64] {"Sphere", "Cube", "Cylinder", "Annular Cylinder", "Bicone", "Bicylinder", "Bilinski Dodecahedron", "Cone",
                                                   "Circular Frustum", "Cuboctohedron", "Deltoidal Icositetrahedron", "Bisphere", "Dodecahedron", "Egg", "Gyroelongated Square Bipyramid", "Perpendicular Cylindrical Wedge",
@@ -38,8 +39,8 @@ public class NeedySilhouettesScript : MonoBehaviour {
         foreach(KMSelectable rbutton in rotbuttons)
         {
             int r = rotbuttons.IndexOf(rbutton);
-            rbutton.OnInteract += delegate () { StartCoroutine(Rotate(r)); return false; };
-            rbutton.OnInteractEnded += delegate () { StopAllCoroutines(); };
+            rbutton.OnInteract += delegate () { rotate[r] = Rotate(r); StartCoroutine(rotate[r]); return false; };
+            rbutton.OnInteractEnded += delegate () { StopCoroutine(rotate[r]); };
         }
         foreach(KMSelectable gbutton in gridbuttons)
         {
@@ -57,25 +58,25 @@ public class NeedySilhouettesScript : MonoBehaviour {
             switch (dir)
             {
                 case 0:
-                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.right, 3);
+                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.right, 9);
                     break;
                 case 1:
-                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.up, 3);
+                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.up, 9);
                     break;
                 case 2:
-                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.left, 3);
+                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.left, 9);
                     break;
                 case 3:
-                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.down, 3);
+                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.down, 9);
                     break;
                 case 4:
-                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.forward, 3); ;
+                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.forward, 9);
                     break;
                 default:
-                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.back, 3); ;
+                    rotcentre.transform.RotateAround(rotcentre.transform.position, Vector3.back, 9);
                     break;
             }
-            yield return null;
+            yield return new WaitForSeconds(0.05f);
         }
     }
 
@@ -131,7 +132,7 @@ public class NeedySilhouettesScript : MonoBehaviour {
         if (presses.Length == 1 && command.Length == 2 && "ABCDEFGH".Contains(command[0].ToString().ToUpperInvariant()) && "12345678".Contains(command[1].ToString()))
         {
             yield return null;
-            while(coordinates[0].text != command[0].ToString())
+            while(coordinates[0].text != command[0].ToString().ToUpperInvariant())
             {
                 gridbuttons[1].OnInteract();
                 yield return new WaitForSeconds(0.125f);
@@ -181,6 +182,47 @@ public class NeedySilhouettesScript : MonoBehaviour {
         else
         {
             yield return "sendtochaterror Invalid number of arguments";
+        }
+    }
+
+    private void TwitchHandleForcedSolve()
+    {
+        StartCoroutine(HandleAutosolve());
+    }
+
+    private IEnumerator HandleAutosolve()
+    {
+        while (true)
+        {
+            while (!active) yield return null;
+            int[] targets = { targetpos / 8, targetpos % 8 };
+            for (int i = 0; i < 2; i++)
+            {
+                int diff = targets[i] - currentpos[i];
+                if (Math.Abs(diff) > 4)
+                {
+                    diff = Math.Abs(diff) - 8;
+                    if (targets[i] < currentpos[i])
+                        diff = -diff;
+                }
+                if (diff > 0)
+                {
+                    while (currentpos[i] != targets[i])
+                    {
+                        gridbuttons[i == 0 ? 1 : 3].OnInteract();
+                        yield return new WaitForSeconds(0.125f);
+                    }
+                }
+                else
+                {
+                    while (currentpos[i] != targets[i])
+                    {
+                        gridbuttons[i == 0 ? 0 : 2].OnInteract();
+                        yield return new WaitForSeconds(0.125f);
+                    }
+                }
+            }
+            while (active) yield return null;
         }
     }
 }
